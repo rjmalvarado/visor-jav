@@ -3,144 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ipsycom Personal Vault</title>
+    <title>IPS VULT Cloud</title>
     <style>
-        :root { --primary: #e11d48; --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --edit: #f59e0b; --accent: #38bdf8; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: auto; }
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        .header h1 { margin: 0; color: var(--primary); letter-spacing: 2px; }
-        
-        .add-section { text-align: center; margin-bottom: 30px; }
-        .add-btn { padding: 15px 40px; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; font-size: 18px; font-weight: bold; box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4); transition: 0.3s; }
-        .add-btn:hover { transform: scale(1.05); background: #f43f5e; }
-
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
-        
-        .card { background: var(--card-bg); border-radius: 15px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.3s; position: relative; display: flex; flex-direction: column; border: 1px solid #334155; }
-        .card:hover { transform: translateY(-8px); border-color: var(--primary); }
-        
-        .card-media-wrapper { width: 100%; height: 200px; position: relative; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .card img { width: 100%; height: 100%; object-fit: cover; }
-        
-        .img-error-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); color: #94a3b8; display: none; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; text-align: center; padding: 10px; box-sizing: border-box; }
-        .card img.error + .img-error-overlay { display: flex; }
-        .card img.error { opacity: 0; }
-
-        .card-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
-        .card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 5px; min-height: 20px; }
-        .card-actress { font-size: 13px; font-weight: 400; color: var(--accent); margin-bottom: 15px; font-style: italic; }
-        
-        .card-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 12px; margin-top: auto; }
+        :root { --primary: #e11d48; --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --accent: #38bdf8; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; text-align: center; }
+        .header { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 30px; }
+        .add-btn { padding: 15px 40px; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
+        .card { background: var(--card-bg); border-radius: 15px; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column; text-align: left; position: relative; }
+        .card-img { width: 100%; height: 200px; object-fit: cover; background: #000; }
+        .card-info { padding: 15px; }
+        .card-title { font-weight: 600; margin-bottom: 5px; }
+        .card-actress { color: var(--accent); font-size: 13px; margin-bottom: 15px; }
         .btn-link { color: var(--primary); text-decoration: none; font-weight: bold; font-size: 13px; }
-        .btn-edit { background: none; border: 1px solid var(--edit); color: var(--edit); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; transition: 0.2s; }
-        .btn-edit:hover { background: var(--edit); color: white; }
-
-        .delete-btn { position: absolute; top: 10px; right: 10px; background: rgba(220, 38, 38, 0.9); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; z-index: 10; font-size: 16px; opacity: 0.6; transition: 0.3s; }
-        .delete-btn:hover { opacity: 1; transform: rotate(90deg); }
+        .loading { font-style: italic; color: var(--accent); }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>IPS VULT</h1>
-        <small>Bóveda Privada - Gestión de Catálogo</small>
+        <h1>IPS VULT CLOUD</h1>
+        <small>Sincronizado con Google Drive</small>
     </div>
 
-    <div class="add-section">
-        <button class="add-btn" onclick="addNewItem()">+ AGREGAR NUEVO VIDEO</button>
-    </div>
+    <button class="add-btn" id="btnAgregar" onclick="addNewItem()">+ AGREGAR A DRIVE</button>
+    <p id="status" class="loading"></p>
 
     <div class="grid" id="galleryGrid"></div>
 </div>
 
 <script>
+    // --- PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT ---
+    const SCRIPT_URL = "URL_DE_TU_SCRIPT_AQUI";
+
     document.addEventListener('DOMContentLoaded', loadItems);
 
-    function addNewItem() {
-        const videoUrl = prompt("1/4 - URL del Video/Página:", "");
+    async function addNewItem() {
+        const videoUrl = prompt("1/4 - URL del Video:");
         if (!videoUrl) return;
-        const imageUrl = prompt("2/4 - URL de la Portada (JPG/PNG):", "");
-        const videoTitle = prompt("3/4 - Nombre del Video (ID):", "CAWD-848");
-        const actressName = prompt("4/4 - Nombre de la Actriz:", "");
+        const imageUrl = prompt("2/4 - URL de la Portada:");
+        const title = prompt("3/4 - ID del Video:");
+        const actress = prompt("4/4 - Nombre de la Actriz:");
 
-        const item = {
-            id: Date.now(),
-            videoUrl: videoUrl,
-            imageUrl: imageUrl || '',
-            title: videoTitle || "Sin ID",
-            actress: actressName || "Desconocida"
-        };
-
-        let items = getStorage();
-        items.unshift(item);
-        saveStorage(items);
-        renderItems(items);
-    }
-
-    function editItem(id) {
-        let items = getStorage();
-        let item = items.find(i => i.id === id);
+        const item = { videoUrl, imageUrl, title, actress };
         
-        if (item) {
-            const newUrl = prompt("Editar URL del Video:", item.videoUrl);
-            const newImg = prompt("Editar URL de la Portada:", item.imageUrl);
-            const newTitle = prompt("Editar Nombre del Video (ID):", item.title);
-            const newActress = prompt("Editar Nombre de la Actriz:", item.actress);
+        document.getElementById('status').innerText = "Guardando en Google Sheets...";
+        document.getElementById('btnAgregar').disabled = true;
 
-            if (newUrl !== null) item.videoUrl = newUrl;
-            if (newImg !== null) item.imageUrl = newImg;
-            if (newTitle !== null) item.title = newTitle;
-            if (newActress !== null) item.actress = newActress;
-
-            saveStorage(items);
-            renderItems(items);
+        try {
+            await fetch(SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors", // Necesario para Google Scripts
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(item)
+            });
+            
+            alert("Guardado con éxito. Los cambios pueden tardar unos segundos en aparecer.");
+            location.reload(); 
+        } catch (e) {
+            alert("Error al guardar.");
+            console.error(e);
         }
     }
 
-    function deleteItem(id) {
-        if(!confirm("¿Eliminar este registro?")) return;
-        let items = getStorage().filter(i => i.id !== id);
-        saveStorage(items);
-        renderItems(items);
-    }
-
-    function getStorage() {
-        return JSON.parse(localStorage.getItem('ipsycomVault') || '[]');
-    }
-
-    function saveStorage(items) {
-        localStorage.setItem('ipsycomVault', JSON.stringify(items));
-    }
-
-    function handleImgError(img) {
-        img.classList.add('error');
+    async function loadItems() {
+        document.getElementById('status').innerText = "Cargando desde la nube...";
+        try {
+            const response = await fetch(SCRIPT_URL);
+            const data = await response.json();
+            renderItems(data);
+            document.getElementById('status').innerText = "";
+        } catch (e) {
+            document.getElementById('status').innerText = "Error al conectar con Drive.";
+        }
     }
 
     function renderItems(items) {
         const grid = document.getElementById('galleryGrid');
         grid.innerHTML = '';
 
-        items.forEach(item => {
+        items.forEach(row => {
+            // Estructura de columnas en el Excel: [URL, Portada, ID, Actriz]
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
-                <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
-                <div class="card-media-wrapper">
-                    <img src="${item.imageUrl}" onerror="handleImgError(this)">
-                    <div class="img-error-overlay">
-                        <span>🖼️⛔</span>
-                        <b>Imagen Protegida</b>
-                        <small>El sitio origen bloquea la carga</small>
-                    </div>
-                </div>
+                <img class="card-img" src="${row[1]}" onerror="this.src='https://via.placeholder.com/400x300?text=Error+Imagen'">
                 <div class="card-info">
-                    <div class="card-title">${item.title}</div>
-                    <div class="card-actress">👤 ${item.actress}</div>
-                    <div class="card-actions">
-                        <button class="btn-edit" onclick="editItem(${item.id})">EDITAR</button>
-                        <a class="btn-link" href="${item.videoUrl}" target="_blank">ABRIR →</a>
+                    <div class="card-title">${row[2]}</div>
+                    <div class="card-actress">👤 ${row[3]}</div>
+                    <div style="text-align:right">
+                        <a class="btn-link" href="${row[0]}" target="_blank">ABRIR →</a>
                     </div>
                 </div>
             `;
