@@ -3,21 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPS VULT Cloud</title>
+    <title>IPS VULT Cloud Pro</title>
     <style>
-        :root { --primary: #e11d48; --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --accent: #38bdf8; }
+        :root { --primary: #e11d48; --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --accent: #38bdf8; --edit: #f59e0b; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: auto; text-align: center; }
         .header { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 30px; }
-        .add-btn { padding: 15px 40px; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
+        .add-btn { padding: 15px 40px; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 16px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
-        .card { background: var(--card-bg); border-radius: 15px; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column; text-align: left; position: relative; }
+        .card { background: var(--card-bg); border-radius: 15px; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column; text-align: left; transition: 0.3s; }
+        .card:hover { border-color: var(--primary); transform: translateY(-5px); }
         .card-img { width: 100%; height: 200px; object-fit: cover; background: #000; }
         .card-info { padding: 15px; }
-        .card-title { font-weight: 600; margin-bottom: 5px; }
+        .card-title { font-weight: 600; font-size: 15px; margin-bottom: 5px; color: #fff; }
         .card-actress { color: var(--accent); font-size: 13px; margin-bottom: 15px; }
+        .card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
         .btn-link { color: var(--primary); text-decoration: none; font-weight: bold; font-size: 13px; }
-        .loading { font-style: italic; color: var(--accent); }
+        .btn-edit { background: none; border: 1px solid var(--edit); color: var(--edit); padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; }
+        .btn-edit:hover { background: var(--edit); color: white; }
+        .status-msg { color: var(--accent); margin-top: 10px; font-weight: bold; min-height: 20px; }
     </style>
 </head>
 <body>
@@ -25,58 +29,60 @@
 <div class="container">
     <div class="header">
         <h1>IPS VULT CLOUD</h1>
-        <small>Sincronizado con Google Drive</small>
+        <small>Gestión de Catálogo - Sincronizado con Sheets</small>
     </div>
 
-    <button class="add-btn" id="btnAgregar" onclick="addNewItem()">+ AGREGAR A DRIVE</button>
-    <p id="status" class="loading"></p>
+    <button class="add-btn" id="btnAgregar" onclick="saveItem()">+ AGREGAR NUEVO</button>
+    <div id="status" class="status-msg"></div>
 
     <div class="grid" id="galleryGrid"></div>
 </div>
 
 <script>
-    // --- PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT ---
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZe0oOj7GSUySt0hS-0BCNlsMCYOIeaAMlLPeInXHvbAuR96LJXSi0GbMFxSM7IEU9/exec";
+    const SCRIPT_URL = "TU_URL_AQUI"; // REEMPLAZAR CON TU URL
 
     document.addEventListener('DOMContentLoaded', loadItems);
 
-    async function addNewItem() {
-        const videoUrl = prompt("1/4 - URL del Video:");
-        if (!videoUrl) return;
-        const imageUrl = prompt("2/4 - URL de la Portada:");
-        const title = prompt("3/4 - ID del Video:");
-        const actress = prompt("4/4 - Nombre de la Actriz:");
+    async function saveItem(existingItem = null) {
+        const videoUrl = prompt("1/4 - URL del Video:", existingItem ? existingItem.videoUrl : "");
+        if (videoUrl === null) return;
+        const imageUrl = prompt("2/4 - URL de la Portada:", existingItem ? existingItem.imageUrl : "");
+        const title = prompt("3/4 - ID del Video:", existingItem ? existingItem.title : "");
+        const actress = prompt("4/4 - Nombre de la Actriz:", existingItem ? existingItem.actress : "");
 
-        const item = { videoUrl, imageUrl, title, actress };
+        const item = { 
+            videoUrl, 
+            imageUrl, 
+            title, 
+            actress, 
+            id: existingItem ? existingItem.id : new Date().getTime() 
+        };
         
-        document.getElementById('status').innerText = "Guardando en Google Sheets...";
-        document.getElementById('btnAgregar').disabled = true;
-
+        document.getElementById('status').innerText = "Sincronizando con la nube...";
+        
         try {
             await fetch(SCRIPT_URL, {
                 method: "POST",
-                mode: "no-cors", // Necesario para Google Scripts
-                headers: { "Content-Type": "application/json" },
+                mode: "no-cors", 
                 body: JSON.stringify(item)
             });
             
-            alert("Guardado con éxito. Los cambios pueden tardar unos segundos en aparecer.");
+            alert("✓ ¡Proceso completado!");
             location.reload(); 
         } catch (e) {
-            alert("Error al guardar.");
-            console.error(e);
+            alert("Error al conectar con Google.");
         }
     }
 
     async function loadItems() {
-        document.getElementById('status').innerText = "Cargando desde la nube...";
+        document.getElementById('status').innerText = "Cargando galería...";
         try {
             const response = await fetch(SCRIPT_URL);
             const data = await response.json();
             renderItems(data);
             document.getElementById('status').innerText = "";
         } catch (e) {
-            document.getElementById('status').innerText = "Error al conectar con Drive.";
+            document.getElementById('status').innerText = "⚠️ Error de conexión";
         }
     }
 
@@ -84,22 +90,30 @@
         const grid = document.getElementById('galleryGrid');
         grid.innerHTML = '';
 
+        // Mostramos los últimos agregados primero
         items.reverse().forEach(row => {
-            // Estructura de columnas en el Excel: [URL, Portada, ID, Actriz]
+            // Estructura row: [videoUrl, imageUrl, title, actress, id]
+            const itemObj = { videoUrl: row[0], imageUrl: row[1], title: row[2], actress: row[3], id: row[4] };
+            
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
-                <img class="card-img" src="${row[1]}" onerror="this.src='https://via.placeholder.com/400x300?text=Error+Imagen'">
+                <img class="card-img" src="${itemObj.imageUrl}" onerror="this.src='https://via.placeholder.com/400x300?text=Error+Imagen'">
                 <div class="card-info">
-                    <div class="card-title">${row[2]}</div>
-                    <div class="card-actress">👤 ${row[3]}</div>
-                    <div style="text-align:right">
-                        <a class="btn-link" href="${row[0]}" target="_blank">ABRIR →</a>
+                    <div class="card-title">${itemObj.title}</div>
+                    <div class="card-actress">👤 ${itemObj.actress}</div>
+                    <div class="card-actions">
+                        <button class="btn-edit" onclick='editTrigger(${JSON.stringify(itemObj)})'>EDITAR</button>
+                        <a class="btn-link" href="${itemObj.videoUrl}" target="_blank">ABRIR →</a>
                     </div>
                 </div>
             `;
             grid.appendChild(card);
         });
+    }
+
+    function editTrigger(item) {
+        saveItem(item);
     }
 </script>
 
