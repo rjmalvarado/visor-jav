@@ -11,7 +11,7 @@
         .header { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; }
         
         .filter-container { margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.05); }
-        .filter-btn { padding: 6px 15px; background: #334155; color: white; border: 1px solid #475569; border-radius: 20px; cursor: pointer; font-size: 12px; transition: 0.3s; }
+        .filter-btn { padding: 6px 15px; background: #334155; color: white; border: 1px solid #475569; border-radius: 20px; cursor: pointer; font-size: 11px; transition: 0.3s; text-transform: uppercase; }
         .filter-btn:hover, .filter-btn.active { background: var(--accent); border-color: var(--accent); }
 
         .add-btn { padding: 12px 30px; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 15px; margin-bottom: 30px; }
@@ -25,12 +25,9 @@
         .card-actions { display: flex; gap: 8px; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 12px; }
         .btn-link { color: var(--primary); text-decoration: none; font-weight: bold; font-size: 12px; }
         
-        /* Paginación */
         .pagination { margin-top: 40px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; padding-bottom: 50px; }
-        .page-btn { padding: 8px 16px; background: #1e293b; color: white; border: 1px solid #334155; border-radius: 5px; cursor: pointer; transition: 0.3s; }
-        .page-btn:hover:not(:disabled) { background: #334155; }
-        .page-btn.active { background: var(--primary); border-color: var(--primary); }
-        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .page-btn { padding: 8px 16px; background: #1e293b; color: white; border: 1px solid #334155; border-radius: 5px; cursor: pointer; }
+        .page-btn.active { background: var(--primary); }
 
         .status-msg { color: var(--accent); font-weight: bold; margin-bottom: 10px; }
     </style>
@@ -49,7 +46,6 @@
     <div id="status" class="status-msg"></div>
 
     <div class="grid" id="galleryGrid"></div>
-
     <div class="pagination" id="paginationControls"></div>
 </div>
 
@@ -59,16 +55,16 @@
     let ALL_DATA = []; 
     let FILTERED_DATA = [];
     let currentPage = 1;
-    const itemsPerPage = 8; // AQUÍ CAMBIAS CUÁNTOS VER POR PÁGINA
+    const itemsPerPage = 8;
 
     document.addEventListener('DOMContentLoaded', loadItems);
 
     async function loadItems() {
-        document.getElementById('status').innerText = "Cargando desde Drive...";
+        document.getElementById('status').innerText = "Cargando desde la nube...";
         try {
             const response = await fetch(SCRIPT_URL);
             const rawData = await response.json();
-            ALL_DATA = [...rawData].reverse(); // Más nuevo primero
+            ALL_DATA = [...rawData].reverse(); 
             FILTERED_DATA = ALL_DATA; 
             
             generateFilters(ALL_DATA);
@@ -82,28 +78,42 @@
     function generateFilters(items) {
         const filterBox = document.getElementById('actressFilters');
         filterBox.innerHTML = '<button class="filter-btn active" id="btn-all" onclick="filterByActress(\'ALL\')">TODAS</button>';
-        const actresses = [...new Set(items.map(row => row[3]))].sort();
-        actresses.forEach(name => {
-            if(name && name.trim() !== "") {
-                const btn = document.createElement('button');
-                btn.className = 'filter-btn';
-                btn.innerText = name.toUpperCase();
-                btn.onclick = () => filterByActress(name);
-                filterBox.appendChild(btn);
+        
+        let allNames = [];
+        items.forEach(row => {
+            if(row[3]) {
+                // Separamos por comas y limpiamos espacios
+                const namesInRow = row[3].split(',').map(n => n.trim());
+                allNames = allNames.concat(namesInRow);
             }
+        });
+
+        const uniqueActresses = [...new Set(allNames)].filter(n => n !== "").sort();
+        
+        uniqueActresses.forEach(name => {
+            const btn = document.createElement('button');
+            btn.className = 'filter-btn';
+            btn.innerText = name;
+            btn.onclick = (e) => filterByActress(name, e.target);
+            filterBox.appendChild(btn);
         });
     }
 
-    function filterByActress(name) {
-        currentPage = 1; // Resetear a la primera página al filtrar
+    function filterByActress(name, btnElement) {
+        currentPage = 1;
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         
         if (name === 'ALL') {
             document.getElementById('btn-all').classList.add('active');
             FILTERED_DATA = ALL_DATA;
         } else {
-            event.target.classList.add('active');
-            FILTERED_DATA = ALL_DATA.filter(row => row[3] === name);
+            if(btnElement) btnElement.classList.add('active');
+            // Filtrar si el nombre está incluido en la lista de actrices de la fila
+            FILTERED_DATA = ALL_DATA.filter(row => {
+                if(!row[3]) return false;
+                const names = row[3].split(',').map(n => n.trim());
+                return names.includes(name);
+            });
         }
         updateView();
     }
@@ -117,15 +127,9 @@
         const grid = document.getElementById('galleryGrid');
         grid.innerHTML = '';
 
-        // Calcular qué items mostrar según la página
         const start = (currentPage - 1) * itemsPerPage;
         const end = start + itemsPerPage;
         const pageItems = FILTERED_DATA.slice(start, end);
-
-        if(pageItems.length === 0) {
-            grid.innerHTML = "<p style='grid-column: 1/-1'>No hay videos registrados.</p>";
-            return;
-        }
 
         pageItems.forEach(row => {
             const itemObj = { videoUrl: row[0], imageUrl: row[1], title: row[2], actress: row[3], id: row[4] };
@@ -133,9 +137,9 @@
             card.className = 'card';
             card.innerHTML = `
                 <img class="card-img" 
-         src="${itemObj.imageUrl}" 
-         loading="lazy" 
-         onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=Link+de+Imagen+Invalido'">
+                     src="${itemObj.imageUrl}" 
+                     referrerpolicy="no-referrer" 
+                     onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=Error+de+Carga'">
                 <div class="card-info">
                     <div class="card-title">${itemObj.title}</div>
                     <div class="card-actress">👤 ${itemObj.actress}</div>
@@ -148,49 +152,29 @@
             `;
             grid.appendChild(card);
         });
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // Subir al inicio al cambiar página
     }
 
     function renderPagination() {
         const controls = document.getElementById('paginationControls');
         controls.innerHTML = '';
-        
         const totalPages = Math.ceil(FILTERED_DATA.length / itemsPerPage);
-        if (totalPages <= 1) return; // No mostrar si solo hay una página
+        if (totalPages <= 1) return;
 
-        // Botón Anterior
-        const prevBtn = document.createElement('button');
-        prevBtn.className = 'page-btn';
-        prevBtn.innerText = '«';
-        prevBtn.disabled = currentPage === 1;
-        prevBtn.onclick = () => { currentPage--; updateView(); };
-        controls.appendChild(prevBtn);
-
-        // Números de Página
         for (let i = 1; i <= totalPages; i++) {
             const btn = document.createElement('button');
             btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
             btn.innerText = i;
-            btn.onclick = () => { currentPage = i; updateView(); };
+            btn.onclick = () => { currentPage = i; updateView(); window.scrollTo(0,0); };
             controls.appendChild(btn);
         }
-
-        // Botón Siguiente
-        const nextBtn = document.createElement('button');
-        nextBtn.className = 'page-btn';
-        nextBtn.innerText = '»';
-        nextBtn.disabled = currentPage === totalPages;
-        nextBtn.onclick = () => { currentPage++; updateView(); };
-        controls.appendChild(nextBtn);
     }
 
-    // --- API FUNCTIONS (MISMAS DE ANTES) ---
     async function saveItem(existingItem = null) {
         const videoUrl = prompt("URL Video:", existingItem ? existingItem.videoUrl : "");
         if (videoUrl === null) return;
         const imageUrl = prompt("URL Portada:", existingItem ? existingItem.imageUrl : "");
         const title = prompt("ID Video:", existingItem ? existingItem.title : "");
-        const actress = prompt("Actriz:", existingItem ? existingItem.actress : "");
+        const actress = prompt("Nombres de Actrices (Separar por comas):", existingItem ? existingItem.actress : "");
         const item = { videoUrl, imageUrl, title, actress, id: existingItem ? existingItem.id : "" };
         document.getElementById('status').innerText = "Guardando...";
         await apiCall(item);
