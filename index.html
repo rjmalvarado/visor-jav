@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IPS VULT Cloud Pro</title>
     <style>
-        :root { --primary: #e11d48; --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --accent: #38bdf8; --edit: #f59e0b; }
+        :root { --primary: #e11d48; --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --accent: #38bdf8; --edit: #f59e0b; --delete: #dc2626; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: auto; text-align: center; }
         .header { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 30px; }
         .add-btn { padding: 15px 40px; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 16px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
-        .card { background: var(--card-bg); border-radius: 15px; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column; text-align: left; transition: 0.3s; }
-        .card:hover { border-color: var(--primary); transform: translateY(-5px); }
+        .card { background: var(--card-bg); border-radius: 15px; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column; text-align: left; position: relative; }
         .card-img { width: 100%; height: 200px; object-fit: cover; background: #000; }
         .card-info { padding: 15px; }
         .card-title { font-weight: 600; font-size: 15px; margin-bottom: 5px; color: #fff; }
         .card-actress { color: var(--accent); font-size: 13px; margin-bottom: 15px; }
-        .card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
-        .btn-link { color: var(--primary); text-decoration: none; font-weight: bold; font-size: 13px; }
-        .btn-edit { background: none; border: 1px solid var(--edit); color: var(--edit); padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; }
-        .btn-edit:hover { background: var(--edit); color: white; }
+        .card-actions { display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: auto; border-top: 1px solid #334155; padding-top: 12px; }
+        .btn-link { color: var(--primary); text-decoration: none; font-weight: bold; font-size: 12px; }
+        .btn-edit { background: none; border: 1px solid var(--edit); color: var(--edit); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; }
+        .btn-delete { background: none; border: 1px solid var(--delete); color: var(--delete); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; }
+        .btn-delete:hover { background: var(--delete); color: white; }
         .status-msg { color: var(--accent); margin-top: 10px; font-weight: bold; min-height: 20px; }
     </style>
 </head>
@@ -32,14 +32,14 @@
         <small>Gestión de Catálogo - Sincronizado con Sheets</small>
     </div>
 
-    <button class="add-btn" id="btnAgregar" onclick="saveItem()">+ AGREGAR NUEVO</button>
+    <button class="add-btn" id="btnAgregar" onclick="saveItem()">+ AGREGAR NUEVO VIDEO</button>
     <div id="status" class="status-msg"></div>
 
     <div class="grid" id="galleryGrid"></div>
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZe0oOj7GSUySt0hS-0BCNlsMCYOIeaAMlLPeInXHvbAuR96LJXSi0GbMFxSM7IEU9/exec"; // REEMPLAZAR CON TU URL
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZe0oOj7GSUySt0hS-0BCNlsMCYOIeaAMlLPeInXHvbAuR96LJXSi0GbMFxSM7IEU9/exec";
 
     document.addEventListener('DOMContentLoaded', loadItems);
 
@@ -51,52 +51,52 @@
         const actress = prompt("4/4 - Nombre de la Actriz:", existingItem ? existingItem.actress : "");
 
         const item = { 
-            videoUrl, 
-            imageUrl, 
-            title, 
-            actress, 
-            id: existingItem ? existingItem.id : new Date().getTime() 
+            videoUrl, imageUrl, title, actress, 
+            id: existingItem ? existingItem.id : "" // Si es nuevo, va vacío para que el script cree uno
         };
         
-        document.getElementById('status').innerText = "Sincronizando con la nube...";
-        
+        document.getElementById('status').innerText = "Guardando en la nube...";
+        await apiCall(item);
+    }
+
+    async function deleteItem(id, title) {
+        if (confirm(`¿ESTÁS SEGURO?\nVas a eliminar permanentemente: ${title}`)) {
+            document.getElementById('status').innerText = "Eliminando de la nube...";
+            await apiCall({ action: 'delete', id: id });
+        }
+    }
+
+    async function apiCall(payload) {
         try {
             await fetch(SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors", 
-                body: JSON.stringify(item)
+                body: JSON.stringify(payload)
             });
-            
-            alert("✓ ¡Proceso completado!");
+            alert("✓ Operación exitosa");
             location.reload(); 
         } catch (e) {
-            alert("Error al conectar con Google.");
+            alert("Error de conexión");
         }
     }
 
     async function loadItems() {
-    document.getElementById('status').innerText = "Cargando galería...";
-    try {
-        // Añadimos cache: 'no-cache' para forzar a que traiga lo último del Excel
-        const response = await fetch(SCRIPT_URL, { cache: 'no-cache' });
-        const data = await response.json();
-        renderItems(data);
-        document.getElementById('status').innerText = "✓ Sincronizado";
-    } catch (e) {
-        console.error("Error detallado:", e);
-        document.getElementById('status').innerText = "⚠️ Error de conexión";
+        document.getElementById('status').innerText = "Sincronizando...";
+        try {
+            const response = await fetch(SCRIPT_URL);
+            const data = await response.json();
+            renderItems(data);
+            document.getElementById('status').innerText = "";
+        } catch (e) {
+            document.getElementById('status').innerText = "⚠️ Error";
+        }
     }
-}
 
     function renderItems(items) {
         const grid = document.getElementById('galleryGrid');
         grid.innerHTML = '';
-
-        // Mostramos los últimos agregados primero
         items.reverse().forEach(row => {
-            // Estructura row: [videoUrl, imageUrl, title, actress, id]
             const itemObj = { videoUrl: row[0], imageUrl: row[1], title: row[2], actress: row[3], id: row[4] };
-            
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
@@ -105,17 +105,14 @@
                     <div class="card-title">${itemObj.title}</div>
                     <div class="card-actress">👤 ${itemObj.actress}</div>
                     <div class="card-actions">
-                        <button class="btn-edit" onclick='editTrigger(${JSON.stringify(itemObj)})'>EDITAR</button>
-                        <a class="btn-link" href="${itemObj.videoUrl}" target="_blank">ABRIR →</a>
+                        <button class="btn-edit" onclick='saveItem(${JSON.stringify(itemObj)})'>EDITAR</button>
+                        <button class="btn-delete" onclick="deleteItem('${itemObj.id}', '${itemObj.title}')">BORRAR</button>
+                        <a class="btn-link" href="${itemObj.videoUrl}" target="_blank">VER →</a>
                     </div>
                 </div>
             `;
             grid.appendChild(card);
         });
-    }
-
-    function editTrigger(item) {
-        saveItem(item);
     }
 </script>
 
