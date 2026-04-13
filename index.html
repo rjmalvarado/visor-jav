@@ -132,7 +132,10 @@
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
-                <img class="card-img" src="${itemObj.imageUrl}" onerror="this.src='https://via.placeholder.com/400x300?text=Error+Imagen'">
+                <img class="card-img" 
+         src="${itemObj.imageUrl}" 
+         loading="lazy" 
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=Link+de+Imagen+Invalido'">
                 <div class="card-info">
                     <div class="card-title">${itemObj.title}</div>
                     <div class="card-actress">👤 ${itemObj.actress}</div>
