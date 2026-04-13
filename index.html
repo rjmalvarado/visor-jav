@@ -10,14 +10,13 @@
         .container { max-width: 1200px; margin: auto; text-align: center; }
         .header { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; }
         
-        /* Estilos para los Filtros de Actrices */
         .filter-container { margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.05); }
         .filter-btn { padding: 6px 15px; background: #334155; color: white; border: 1px solid #475569; border-radius: 20px; cursor: pointer; font-size: 12px; transition: 0.3s; }
         .filter-btn:hover, .filter-btn.active { background: var(--accent); border-color: var(--accent); }
 
         .add-btn { padding: 12px 30px; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 15px; margin-bottom: 30px; }
         
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; min-height: 400px; }
         .card { background: var(--card-bg); border-radius: 15px; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column; text-align: left; }
         .card-img { width: 100%; height: 200px; object-fit: cover; background: #000; }
         .card-info { padding: 15px; }
@@ -25,8 +24,14 @@
         .card-actress { color: var(--accent); font-size: 13px; margin-bottom: 15px; }
         .card-actions { display: flex; gap: 8px; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 12px; }
         .btn-link { color: var(--primary); text-decoration: none; font-weight: bold; font-size: 12px; }
-        .btn-edit { background: none; border: 1px solid var(--edit); color: var(--edit); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; }
-        .btn-delete { background: none; border: 1px solid var(--delete); color: var(--delete); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; }
+        
+        /* Paginación */
+        .pagination { margin-top: 40px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; padding-bottom: 50px; }
+        .page-btn { padding: 8px 16px; background: #1e293b; color: white; border: 1px solid #334155; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        .page-btn:hover:not(:disabled) { background: #334155; }
+        .page-btn.active { background: var(--primary); border-color: var(--primary); }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
         .status-msg { color: var(--accent); font-weight: bold; margin-bottom: 10px; }
     </style>
 </head>
@@ -35,7 +40,7 @@
 <div class="container">
     <div class="header">
         <h1>IPS VULT CLOUD</h1>
-        <small>Gestión de Catálogo - Sincronizado con Sheets</small>
+        <small>Ipsycom Cajamarca - Control de Inventario</small>
     </div>
 
     <div class="filter-container" id="actressFilters"></div>
@@ -44,21 +49,30 @@
     <div id="status" class="status-msg"></div>
 
     <div class="grid" id="galleryGrid"></div>
+
+    <div class="pagination" id="paginationControls"></div>
 </div>
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZe0oOj7GSUySt0hS-0BCNlsMCYOIeaAMlLPeInXHvbAuR96LJXSi0GbMFxSM7IEU9/exec";
-    let ALL_DATA = []; // Guardamos los datos globales para filtrar sin recargar
+    
+    let ALL_DATA = []; 
+    let FILTERED_DATA = [];
+    let currentPage = 1;
+    const itemsPerPage = 8; // AQUÍ CAMBIAS CUÁNTOS VER POR PÁGINA
 
     document.addEventListener('DOMContentLoaded', loadItems);
 
     async function loadItems() {
-        document.getElementById('status').innerText = "Sincronizando catálogo...";
+        document.getElementById('status').innerText = "Cargando desde Drive...";
         try {
             const response = await fetch(SCRIPT_URL);
-            ALL_DATA = await response.json();
+            const rawData = await response.json();
+            ALL_DATA = [...rawData].reverse(); // Más nuevo primero
+            FILTERED_DATA = ALL_DATA; 
+            
             generateFilters(ALL_DATA);
-            renderItems(ALL_DATA);
+            updateView();
             document.getElementById('status').innerText = "";
         } catch (e) {
             document.getElementById('status').innerText = "⚠️ Error de conexión";
@@ -67,11 +81,8 @@
 
     function generateFilters(items) {
         const filterBox = document.getElementById('actressFilters');
-        filterBox.innerHTML = '<button class="filter-btn active" onclick="filterByActress(\'ALL\')">TODAS</button>';
-        
-        // Extraer nombres únicos de actrices
+        filterBox.innerHTML = '<button class="filter-btn active" id="btn-all" onclick="filterByActress(\'ALL\')">TODAS</button>';
         const actresses = [...new Set(items.map(row => row[3]))].sort();
-        
         actresses.forEach(name => {
             if(name && name.trim() !== "") {
                 const btn = document.createElement('button');
@@ -84,27 +95,39 @@
     }
 
     function filterByActress(name) {
-        // Actualizar estado visual de los botones
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.innerText === name.toUpperCase() || (name === 'ALL' && btn.innerText === 'TODAS'));
-        });
-
+        currentPage = 1; // Resetear a la primera página al filtrar
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        
         if (name === 'ALL') {
-            renderItems(ALL_DATA);
+            document.getElementById('btn-all').classList.add('active');
+            FILTERED_DATA = ALL_DATA;
         } else {
-            const filtered = ALL_DATA.filter(row => row[3] === name);
-            renderItems(filtered);
+            event.target.classList.add('active');
+            FILTERED_DATA = ALL_DATA.filter(row => row[3] === name);
         }
+        updateView();
     }
 
-    function renderItems(items) {
+    function updateView() {
+        renderItems();
+        renderPagination();
+    }
+
+    function renderItems() {
         const grid = document.getElementById('galleryGrid');
         grid.innerHTML = '';
-        
-        // Invertimos para ver lo más nuevo primero
-        const displayItems = [...items].reverse();
 
-        displayItems.forEach(row => {
+        // Calcular qué items mostrar según la página
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageItems = FILTERED_DATA.slice(start, end);
+
+        if(pageItems.length === 0) {
+            grid.innerHTML = "<p style='grid-column: 1/-1'>No hay videos registrados.</p>";
+            return;
+        }
+
+        pageItems.forEach(row => {
             const itemObj = { videoUrl: row[0], imageUrl: row[1], title: row[2], actress: row[3], id: row[4] };
             const card = document.createElement('div');
             card.className = 'card';
@@ -114,24 +137,57 @@
                     <div class="card-title">${itemObj.title}</div>
                     <div class="card-actress">👤 ${itemObj.actress}</div>
                     <div class="card-actions">
-                        <button class="btn-edit" onclick='saveItem(${JSON.stringify(itemObj)})'>EDITAR</button>
-                        <button class="btn-delete" onclick="deleteItem('${itemObj.id}', '${itemObj.title}')">BORRAR</button>
+                        <button class="btn-edit" style="background:none; border:1px solid var(--edit); color:var(--edit); padding:4px; border-radius:4px; cursor:pointer; font-size:10px;" onclick='saveItem(${JSON.stringify(itemObj)})'>EDITAR</button>
+                        <button class="btn-delete" style="background:none; border:1px solid var(--delete); color:var(--delete); padding:4px; border-radius:4px; cursor:pointer; font-size:10px;" onclick="deleteItem('${itemObj.id}', '${itemObj.title}')">BORRAR</button>
                         <a class="btn-link" href="${itemObj.videoUrl}" target="_blank">VER →</a>
                     </div>
                 </div>
             `;
             grid.appendChild(card);
         });
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // Subir al inicio al cambiar página
     }
 
-    // --- FUNCIONES DE API (MISMAS QUE ANTES) ---
-    async function saveItem(existingItem = null) {
-        const videoUrl = prompt("URL del Video:", existingItem ? existingItem.videoUrl : "");
-        if (videoUrl === null) return;
-        const imageUrl = prompt("URL de la Portada:", existingItem ? existingItem.imageUrl : "");
-        const title = prompt("ID del Video:", existingItem ? existingItem.title : "");
-        const actress = prompt("Nombre de la Actriz:", existingItem ? existingItem.actress : "");
+    function renderPagination() {
+        const controls = document.getElementById('paginationControls');
+        controls.innerHTML = '';
+        
+        const totalPages = Math.ceil(FILTERED_DATA.length / itemsPerPage);
+        if (totalPages <= 1) return; // No mostrar si solo hay una página
 
+        // Botón Anterior
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'page-btn';
+        prevBtn.innerText = '«';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => { currentPage--; updateView(); };
+        controls.appendChild(prevBtn);
+
+        // Números de Página
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.innerText = i;
+            btn.onclick = () => { currentPage = i; updateView(); };
+            controls.appendChild(btn);
+        }
+
+        // Botón Siguiente
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'page-btn';
+        nextBtn.innerText = '»';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.onclick = () => { currentPage++; updateView(); };
+        controls.appendChild(nextBtn);
+    }
+
+    // --- API FUNCTIONS (MISMAS DE ANTES) ---
+    async function saveItem(existingItem = null) {
+        const videoUrl = prompt("URL Video:", existingItem ? existingItem.videoUrl : "");
+        if (videoUrl === null) return;
+        const imageUrl = prompt("URL Portada:", existingItem ? existingItem.imageUrl : "");
+        const title = prompt("ID Video:", existingItem ? existingItem.title : "");
+        const actress = prompt("Actriz:", existingItem ? existingItem.actress : "");
         const item = { videoUrl, imageUrl, title, actress, id: existingItem ? existingItem.id : "" };
         document.getElementById('status').innerText = "Guardando...";
         await apiCall(item);
