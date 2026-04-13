@@ -84,7 +84,7 @@
         const grid = document.getElementById('galleryGrid');
         grid.innerHTML = '';
 
-        items.forEach(row => {
+        items.reverse().forEach(row => {
             // Estructura de columnas en el Excel: [URL, Portada, ID, Actriz]
             const card = document.createElement('div');
             card.className = 'card';
