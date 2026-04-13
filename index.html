@@ -38,26 +38,27 @@
     document.addEventListener('DOMContentLoaded', loadItems);
 
     function addItem() {
-        const url = document.getElementById('urlInput').value;
-        if (!url) return;
+    const url = document.getElementById('urlInput').value;
+    if (!url) return;
 
-        // Intentamos extraer un nombre de la URL
-        const fileName = url.split('/').pop().split('?')[0] || "Archivo sin nombre";
-        
-        const item = {
-            id: Date.now(),
-            url: url,
-            name: decodeURIComponent(fileName)
-        };
+    // Pedimos al usuario que ingrese los detalles manualmente para que se guarden
+    const customName = prompt("Nombre del video / ID / Actriz:", "Nuevo Video");
+    const thumbUrl = prompt("URL de la foto de portada (Opcional):", "");
 
-        let items = JSON.parse(localStorage.getItem('myGallery') || '[]');
-        items.unshift(item); // Agregar al inicio
-        localStorage.setItem('myGallery', JSON.stringify(items));
-        
-        document.getElementById('urlInput').value = '';
-        renderItems(items);
-    }
+    const item = {
+        id: Date.now(),
+        url: url, // Link original
+        thumb: thumbUrl || url, // Si no hay foto, intenta usar la url
+        name: customName || "Sin título"
+    };
 
+    let items = JSON.parse(localStorage.getItem('myGallery') || '[]');
+    items.unshift(item);
+    localStorage.setItem('myGallery', JSON.stringify(items));
+    
+    document.getElementById('urlInput').value = '';
+    renderItems(items);
+}
     function loadItems() {
         const items = JSON.parse(localStorage.getItem('myGallery') || '[]');
         renderItems(items);
