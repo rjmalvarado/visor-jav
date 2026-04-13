@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ipsycom Personal Vault</title>
     <style>
-        :root { --primary: #e11d48; --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --edit: #f59e0b; }
+        :root { --primary: #e11d48; --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --edit: #f59e0b; --accent: #38bdf8; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: auto; }
         .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
@@ -28,9 +28,10 @@
         .card img.error { opacity: 0; }
 
         .card-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
-        .card-title { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 15px; min-height: 42px; }
+        .card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 5px; min-height: 20px; }
+        .card-actress { font-size: 13px; font-weight: 400; color: var(--accent); margin-bottom: 15px; font-style: italic; }
         
-        .card-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 12px; }
+        .card-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 12px; margin-top: auto; }
         .btn-link { color: var(--primary); text-decoration: none; font-weight: bold; font-size: 13px; }
         .btn-edit { background: none; border: 1px solid var(--edit); color: var(--edit); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; transition: 0.2s; }
         .btn-edit:hover { background: var(--edit); color: white; }
@@ -44,11 +45,11 @@
 <div class="container">
     <div class="header">
         <h1>IPS VULT</h1>
-        <small>Bóveda Privada - Ipsycom Cajamarca</small>
+        <small>Bóveda Privada - Gestión de Catálogo</small>
     </div>
 
     <div class="add-section">
-        <button class="add-btn" onclick="addNewItem()">+ AGREGAR NUEVO</button>
+        <button class="add-btn" onclick="addNewItem()">+ AGREGAR NUEVO VIDEO</button>
     </div>
 
     <div class="grid" id="galleryGrid"></div>
@@ -58,16 +59,18 @@
     document.addEventListener('DOMContentLoaded', loadItems);
 
     function addNewItem() {
-        const videoUrl = prompt("1/3 - URL del Video/Página:", "");
+        const videoUrl = prompt("1/4 - URL del Video/Página:", "");
         if (!videoUrl) return;
-        const imageUrl = prompt("2/3 - URL de la Portada (JPG/PNG):", "");
-        const videoTitle = prompt("3/3 - Título / Actriz:", "");
+        const imageUrl = prompt("2/4 - URL de la Portada (JPG/PNG):", "");
+        const videoTitle = prompt("3/4 - Nombre del Video (ID):", "CAWD-848");
+        const actressName = prompt("4/4 - Nombre de la Actriz:", "");
 
         const item = {
             id: Date.now(),
             videoUrl: videoUrl,
             imageUrl: imageUrl || '',
-            title: videoTitle || "Sin título"
+            title: videoTitle || "Sin ID",
+            actress: actressName || "Desconocida"
         };
 
         let items = getStorage();
@@ -76,7 +79,6 @@
         renderItems(items);
     }
 
-    // NUEVA FUNCIÓN: EDITAR
     function editItem(id) {
         let items = getStorage();
         let item = items.find(i => i.id === id);
@@ -84,11 +86,13 @@
         if (item) {
             const newUrl = prompt("Editar URL del Video:", item.videoUrl);
             const newImg = prompt("Editar URL de la Portada:", item.imageUrl);
-            const newTitle = prompt("Editar Título / Actriz:", item.title);
+            const newTitle = prompt("Editar Nombre del Video (ID):", item.title);
+            const newActress = prompt("Editar Nombre de la Actriz:", item.actress);
 
             if (newUrl !== null) item.videoUrl = newUrl;
             if (newImg !== null) item.imageUrl = newImg;
             if (newTitle !== null) item.title = newTitle;
+            if (newActress !== null) item.actress = newActress;
 
             saveStorage(items);
             renderItems(items);
@@ -127,12 +131,13 @@
                     <img src="${item.imageUrl}" onerror="handleImgError(this)">
                     <div class="img-error-overlay">
                         <span>🖼️⛔</span>
-                        <b>Imagen no disponible</b>
-                        <small>Bloqueada por el sitio origen</small>
+                        <b>Imagen Protegida</b>
+                        <small>El sitio origen bloquea la carga</small>
                     </div>
                 </div>
                 <div class="card-info">
                     <div class="card-title">${item.title}</div>
+                    <div class="card-actress">👤 ${item.actress}</div>
                     <div class="card-actions">
                         <button class="btn-edit" onclick="editItem(${item.id})">EDITAR</button>
                         <a class="btn-link" href="${item.videoUrl}" target="_blank">ABRIR →</a>
