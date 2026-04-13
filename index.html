@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ipsycom Visual Vault</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        .input-section { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input { width: 70%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
+        button { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.3s; position: relative; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .card img, .card video { width: 100%; height: 180px; object-fit: cover; background: #eee; }
+        .card-info { padding: 12px; }
+        .card-title { font-size: 14px; font-weight: 600; color: #1e293b; word-break: break-all; margin-bottom: 8px; }
+        .delete-btn { position: absolute; top: 5px; right: 5px; background: rgba(220, 38, 38, 0.8); color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="input-section">
+        <h2>Añadir a la Galería</h2>
+        <input type="text" id="urlInput" placeholder="Pega la URL de imagen o video aquí...">
+        <button onclick="addItem()">Agregar</button>
+    </div>
+
+    <div class="grid" id="galleryGrid"></div>
+</div>
+
+<script>
+    // Cargar datos al iniciar
+    document.addEventListener('DOMContentLoaded', loadItems);
+
+    function addItem() {
+        const url = document.getElementById('urlInput').value;
+        if (!url) return;
+
+        // Intentamos extraer un nombre de la URL
+        const fileName = url.split('/').pop().split('?')[0] || "Archivo sin nombre";
+        
+        const item = {
+            id: Date.now(),
+            url: url,
+            name: decodeURIComponent(fileName)
+        };
+
+        let items = JSON.parse(localStorage.getItem('myGallery') || '[]');
+        items.unshift(item); // Agregar al inicio
+        localStorage.setItem('myGallery', JSON.stringify(items));
+        
+        document.getElementById('urlInput').value = '';
+        renderItems(items);
+    }
+
+    function loadItems() {
+        const items = JSON.parse(localStorage.getItem('myGallery') || '[]');
+        renderItems(items);
+    }
+
+    function deleteItem(id) {
+        let items = JSON.parse(localStorage.getItem('myGallery') || '[]');
+        items = items.filter(i => i.id !== id);
+        localStorage.setItem('myGallery', JSON.stringify(items));
+        renderItems(items);
+    }
+
+    function renderItems(items) {
+        const grid = document.getElementById('galleryGrid');
+        grid.innerHTML = '';
+
+        items.forEach(item => {
+            const isVideo = item.url.match(/\.(mp4|webm|ogg)/i) || item.url.includes('akool');
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
+                ${isVideo 
+                    ? `<video src="${item.url}" muted onmouseover="this.play()" onmouseout="this.pause()"></video>` 
+                    : `<img src="${item.url}" onerror="this.src='https://via.placeholder.com/250x180?text=Error+al+Cargar'">`
+                }
+                <div class="card-info">
+                    <div class="card-title">${item.name}</div>
+                    <small><a href="${item.url}" target="_blank" style="color: var(--primary); text-decoration: none;">Abrir original →</a></small>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+</script>
+
+</body>
+</html>
