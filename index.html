@@ -8,20 +8,26 @@
         :root { --primary: #e11d48; --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --accent: #38bdf8; --edit: #f59e0b; --delete: #dc2626; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: auto; text-align: center; }
-        .header { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 30px; }
-        .add-btn { padding: 15px 40px; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 16px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
-        .card { background: var(--card-bg); border-radius: 15px; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column; text-align: left; position: relative; }
+        .header { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; }
+        
+        /* Estilos para los Filtros de Actrices */
+        .filter-container { margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.05); }
+        .filter-btn { padding: 6px 15px; background: #334155; color: white; border: 1px solid #475569; border-radius: 20px; cursor: pointer; font-size: 12px; transition: 0.3s; }
+        .filter-btn:hover, .filter-btn.active { background: var(--accent); border-color: var(--accent); }
+
+        .add-btn { padding: 12px 30px; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 15px; margin-bottom: 30px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .card { background: var(--card-bg); border-radius: 15px; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column; text-align: left; }
         .card-img { width: 100%; height: 200px; object-fit: cover; background: #000; }
         .card-info { padding: 15px; }
         .card-title { font-weight: 600; font-size: 15px; margin-bottom: 5px; color: #fff; }
         .card-actress { color: var(--accent); font-size: 13px; margin-bottom: 15px; }
-        .card-actions { display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: auto; border-top: 1px solid #334155; padding-top: 12px; }
+        .card-actions { display: flex; gap: 8px; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 12px; }
         .btn-link { color: var(--primary); text-decoration: none; font-weight: bold; font-size: 12px; }
         .btn-edit { background: none; border: 1px solid var(--edit); color: var(--edit); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; }
         .btn-delete { background: none; border: 1px solid var(--delete); color: var(--delete); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; }
-        .btn-delete:hover { background: var(--delete); color: white; }
-        .status-msg { color: var(--accent); margin-top: 10px; font-weight: bold; min-height: 20px; }
+        .status-msg { color: var(--accent); font-weight: bold; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -32,6 +38,8 @@
         <small>Gestión de Catálogo - Sincronizado con Sheets</small>
     </div>
 
+    <div class="filter-container" id="actressFilters"></div>
+
     <button class="add-btn" id="btnAgregar" onclick="saveItem()">+ AGREGAR NUEVO VIDEO</button>
     <div id="status" class="status-msg"></div>
 
@@ -40,62 +48,63 @@
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZe0oOj7GSUySt0hS-0BCNlsMCYOIeaAMlLPeInXHvbAuR96LJXSi0GbMFxSM7IEU9/exec";
+    let ALL_DATA = []; // Guardamos los datos globales para filtrar sin recargar
 
     document.addEventListener('DOMContentLoaded', loadItems);
 
-    async function saveItem(existingItem = null) {
-        const videoUrl = prompt("1/4 - URL del Video:", existingItem ? existingItem.videoUrl : "");
-        if (videoUrl === null) return;
-        const imageUrl = prompt("2/4 - URL de la Portada:", existingItem ? existingItem.imageUrl : "");
-        const title = prompt("3/4 - ID del Video:", existingItem ? existingItem.title : "");
-        const actress = prompt("4/4 - Nombre de la Actriz:", existingItem ? existingItem.actress : "");
-
-        const item = { 
-            videoUrl, imageUrl, title, actress, 
-            id: existingItem ? existingItem.id : "" // Si es nuevo, va vacío para que el script cree uno
-        };
-        
-        document.getElementById('status').innerText = "Guardando en la nube...";
-        await apiCall(item);
-    }
-
-    async function deleteItem(id, title) {
-        if (confirm(`¿ESTÁS SEGURO?\nVas a eliminar permanentemente: ${title}`)) {
-            document.getElementById('status').innerText = "Eliminando de la nube...";
-            await apiCall({ action: 'delete', id: id });
-        }
-    }
-
-    async function apiCall(payload) {
-        try {
-            await fetch(SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors", 
-                body: JSON.stringify(payload)
-            });
-            alert("✓ Operación exitosa");
-            location.reload(); 
-        } catch (e) {
-            alert("Error de conexión");
-        }
-    }
-
     async function loadItems() {
-        document.getElementById('status').innerText = "Sincronizando...";
+        document.getElementById('status').innerText = "Sincronizando catálogo...";
         try {
             const response = await fetch(SCRIPT_URL);
-            const data = await response.json();
-            renderItems(data);
+            ALL_DATA = await response.json();
+            generateFilters(ALL_DATA);
+            renderItems(ALL_DATA);
             document.getElementById('status').innerText = "";
         } catch (e) {
-            document.getElementById('status').innerText = "⚠️ Error";
+            document.getElementById('status').innerText = "⚠️ Error de conexión";
+        }
+    }
+
+    function generateFilters(items) {
+        const filterBox = document.getElementById('actressFilters');
+        filterBox.innerHTML = '<button class="filter-btn active" onclick="filterByActress(\'ALL\')">TODAS</button>';
+        
+        // Extraer nombres únicos de actrices
+        const actresses = [...new Set(items.map(row => row[3]))].sort();
+        
+        actresses.forEach(name => {
+            if(name && name.trim() !== "") {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn';
+                btn.innerText = name.toUpperCase();
+                btn.onclick = () => filterByActress(name);
+                filterBox.appendChild(btn);
+            }
+        });
+    }
+
+    function filterByActress(name) {
+        // Actualizar estado visual de los botones
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.innerText === name.toUpperCase() || (name === 'ALL' && btn.innerText === 'TODAS'));
+        });
+
+        if (name === 'ALL') {
+            renderItems(ALL_DATA);
+        } else {
+            const filtered = ALL_DATA.filter(row => row[3] === name);
+            renderItems(filtered);
         }
     }
 
     function renderItems(items) {
         const grid = document.getElementById('galleryGrid');
         grid.innerHTML = '';
-        items.reverse().forEach(row => {
+        
+        // Invertimos para ver lo más nuevo primero
+        const displayItems = [...items].reverse();
+
+        displayItems.forEach(row => {
             const itemObj = { videoUrl: row[0], imageUrl: row[1], title: row[2], actress: row[3], id: row[4] };
             const card = document.createElement('div');
             card.className = 'card';
@@ -113,6 +122,33 @@
             `;
             grid.appendChild(card);
         });
+    }
+
+    // --- FUNCIONES DE API (MISMAS QUE ANTES) ---
+    async function saveItem(existingItem = null) {
+        const videoUrl = prompt("URL del Video:", existingItem ? existingItem.videoUrl : "");
+        if (videoUrl === null) return;
+        const imageUrl = prompt("URL de la Portada:", existingItem ? existingItem.imageUrl : "");
+        const title = prompt("ID del Video:", existingItem ? existingItem.title : "");
+        const actress = prompt("Nombre de la Actriz:", existingItem ? existingItem.actress : "");
+
+        const item = { videoUrl, imageUrl, title, actress, id: existingItem ? existingItem.id : "" };
+        document.getElementById('status').innerText = "Guardando...";
+        await apiCall(item);
+    }
+
+    async function deleteItem(id, title) {
+        if (confirm(`¿Eliminar ${title}?`)) {
+            document.getElementById('status').innerText = "Eliminando...";
+            await apiCall({ action: 'delete', id: id });
+        }
+    }
+
+    async function apiCall(payload) {
+        try {
+            await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) });
+            location.reload(); 
+        } catch (e) { alert("Error"); }
     }
 </script>
 
