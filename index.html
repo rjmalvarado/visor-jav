@@ -39,7 +39,7 @@
 </div>
 
 <script>
-    const SCRIPT_URL = "TU_URL_AQUI"; // REEMPLAZAR CON TU URL
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZe0oOj7GSUySt0hS-0BCNlsMCYOIeaAMlLPeInXHvbAuR96LJXSi0GbMFxSM7IEU9/exec"; // REEMPLAZAR CON TU URL
 
     document.addEventListener('DOMContentLoaded', loadItems);
 
@@ -75,16 +75,18 @@
     }
 
     async function loadItems() {
-        document.getElementById('status').innerText = "Cargando galería...";
-        try {
-            const response = await fetch(SCRIPT_URL);
-            const data = await response.json();
-            renderItems(data);
-            document.getElementById('status').innerText = "";
-        } catch (e) {
-            document.getElementById('status').innerText = "⚠️ Error de conexión";
-        }
+    document.getElementById('status').innerText = "Cargando galería...";
+    try {
+        // Añadimos cache: 'no-cache' para forzar a que traiga lo último del Excel
+        const response = await fetch(SCRIPT_URL, { cache: 'no-cache' });
+        const data = await response.json();
+        renderItems(data);
+        document.getElementById('status').innerText = "✓ Sincronizado";
+    } catch (e) {
+        console.error("Error detallado:", e);
+        document.getElementById('status').innerText = "⚠️ Error de conexión";
     }
+}
 
     function renderItems(items) {
         const grid = document.getElementById('galleryGrid');
