@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ipsycom Personal Vault</title>
     <style>
-        :root { --primary: #e11d48; --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; }
+        :root { --primary: #e11d48; --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --edit: #f59e0b; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: auto; }
         .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        .header h1 { margin: 0; color: var(--primary); }
+        .header h1 { margin: 0; color: var(--primary); letter-spacing: 2px; }
         
         .add-section { text-align: center; margin-bottom: 30px; }
         .add-btn { padding: 15px 40px; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; font-size: 18px; font-weight: bold; box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4); transition: 0.3s; }
@@ -17,30 +17,26 @@
 
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
         
-        /* Estilo de la Tarjeta */
         .card { background: var(--card-bg); border-radius: 15px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.3s; position: relative; display: flex; flex-direction: column; border: 1px solid #334155; }
-        .card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 12px 20px rgba(0,0,0,0.5); }
+        .card:hover { transform: translateY(-8px); border-color: var(--primary); }
         
-        /* Contenedor de Imagen con corrección de error */
         .card-media-wrapper { width: 100%; height: 200px; position: relative; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .card img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+        .card img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* Superposición si la imagen falla (CORS) */
-        .img-error-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: #94a3b8; display: none; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; text-align: center; padding: 10px; box-sizing: border-box; }
-        .img-error-overlay span { font-size: 40px; margin-bottom: 10px; }
-        
-        /* Si la imagen da error, mostramos la superposición */
+        .img-error-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); color: #94a3b8; display: none; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; text-align: center; padding: 10px; box-sizing: border-box; }
         .card img.error + .img-error-overlay { display: flex; }
-        .card img.error { opacity: 0; } /* Ocultamos la imagen rota */
+        .card img.error { opacity: 0; }
 
-        .card-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        .card-title { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-        .card-links { font-size: 13px; text-align: right; border-top: 1px solid #334155; padding-top: 10px; }
-        .card-links a { color: var(--primary); text-decoration: none; font-weight: bold; }
-        .card-links a:hover { text-decoration: underline; }
+        .card-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
+        .card-title { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 15px; min-height: 42px; }
+        
+        .card-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 12px; }
+        .btn-link { color: var(--primary); text-decoration: none; font-weight: bold; font-size: 13px; }
+        .btn-edit { background: none; border: 1px solid var(--edit); color: var(--edit); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; transition: 0.2s; }
+        .btn-edit:hover { background: var(--edit); color: white; }
 
-        .delete-btn { position: absolute; top: 10px; right: 10px; background: rgba(220, 38, 38, 0.9); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-weight: bold; font-size: 18px; z-index: 10; display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: 0.3s; }
-        .delete-btn:hover { opacity: 1; transform: scale(1.1); }
+        .delete-btn { position: absolute; top: 10px; right: 10px; background: rgba(220, 38, 38, 0.9); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; z-index: 10; font-size: 16px; opacity: 0.6; transition: 0.3s; }
+        .delete-btn:hover { opacity: 1; transform: rotate(90deg); }
     </style>
 </head>
 <body>
@@ -48,62 +44,74 @@
 <div class="container">
     <div class="header">
         <h1>IPS VULT</h1>
-        <small>Tu bóveda visual privada (LocalStorage)</small>
+        <small>Bóveda Privada - Ipsycom Cajamarca</small>
     </div>
 
     <div class="add-section">
-        <button class="add-btn" onclick="addNewItem()">+ AGREGAR NUEVO VIDEO</button>
+        <button class="add-btn" onclick="addNewItem()">+ AGREGAR NUEVO</button>
     </div>
 
     <div class="grid" id="galleryGrid"></div>
 </div>
 
 <script>
-    // Cargar datos al iniciar
     document.addEventListener('DOMContentLoaded', loadItems);
 
     function addNewItem() {
-        // 1. Pedir URL Principal (Video o página)
-        const videoUrl = prompt("1/3 - Pega la URL del Video o de la Página:", "");
-        if (!videoUrl) return; // Cancelar si no hay URL
-
-        // 2. Pedir URL de la Foto de Portada
-        const imageUrl = prompt("2/3 - Pega la URL de la FOTO DE PORTADA (jpg/png):", "");
-        
-        // 3. Pedir Título/Actriz
-        const videoTitle = prompt("3/3 - Escribe el Título (ej: ID - Actriz):", "CAWD-848 - Shitara Yuhi");
+        const videoUrl = prompt("1/3 - URL del Video/Página:", "");
+        if (!videoUrl) return;
+        const imageUrl = prompt("2/3 - URL de la Portada (JPG/PNG):", "");
+        const videoTitle = prompt("3/3 - Título / Actriz:", "");
 
         const item = {
             id: Date.now(),
             videoUrl: videoUrl,
-            imageUrl: imageUrl || 'https://via.placeholder.com/400x300?text=Sin+Portada', // Imagen por defecto
+            imageUrl: imageUrl || '',
             title: videoTitle || "Sin título"
         };
 
-        // Guardar en LocalStorage
-        let items = JSON.parse(localStorage.getItem('ipsycomVault') || '[]');
-        items.unshift(item); // Agregar al inicio
-        localStorage.setItem('ipsycomVault', JSON.stringify(items));
-        
+        let items = getStorage();
+        items.unshift(item);
+        saveStorage(items);
         renderItems(items);
     }
 
-    function loadItems() {
-        const items = JSON.parse(localStorage.getItem('ipsycomVault') || '[]');
-        renderItems(items);
+    // NUEVA FUNCIÓN: EDITAR
+    function editItem(id) {
+        let items = getStorage();
+        let item = items.find(i => i.id === id);
+        
+        if (item) {
+            const newUrl = prompt("Editar URL del Video:", item.videoUrl);
+            const newImg = prompt("Editar URL de la Portada:", item.imageUrl);
+            const newTitle = prompt("Editar Título / Actriz:", item.title);
+
+            if (newUrl !== null) item.videoUrl = newUrl;
+            if (newImg !== null) item.imageUrl = newImg;
+            if (newTitle !== null) item.title = newTitle;
+
+            saveStorage(items);
+            renderItems(items);
+        }
     }
 
     function deleteItem(id) {
-        if(!confirm("¿Seguro que quieres eliminar este registro?")) return;
-        let items = JSON.parse(localStorage.getItem('ipsycomVault') || '[]');
-        items = items.filter(i => i.id !== id);
-        localStorage.setItem('ipsycomVault', JSON.stringify(items));
+        if(!confirm("¿Eliminar este registro?")) return;
+        let items = getStorage().filter(i => i.id !== id);
+        saveStorage(items);
         renderItems(items);
     }
 
-    // Función para manejar errores de imagen (CORS/Hotlinking)
+    function getStorage() {
+        return JSON.parse(localStorage.getItem('ipsycomVault') || '[]');
+    }
+
+    function saveStorage(items) {
+        localStorage.setItem('ipsycomVault', JSON.stringify(items));
+    }
+
     function handleImgError(img) {
-        img.classList.add('error'); // Añadimos la clase de error
+        img.classList.add('error');
     }
 
     function renderItems(items) {
@@ -115,21 +123,19 @@
             card.className = 'card';
             card.innerHTML = `
                 <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
-                
                 <div class="card-media-wrapper">
-                    <img src="${item.imageUrl}" alt="Portada" onerror="handleImgError(this)">
-                    
+                    <img src="${item.imageUrl}" onerror="handleImgError(this)">
                     <div class="img-error-overlay">
                         <span>🖼️⛔</span>
-                        <b>Imagen Protegida</b>
-                        <p>El sitio original bloquea la visualización directa.</p>
+                        <b>Imagen no disponible</b>
+                        <small>Bloqueada por el sitio origen</small>
                     </div>
                 </div>
-
                 <div class="card-info">
                     <div class="card-title">${item.title}</div>
-                    <div class="card-links">
-                        <a href="${item.videoUrl}" target="_blank">Ver Video Completo →</a>
+                    <div class="card-actions">
+                        <button class="btn-edit" onclick="editItem(${item.id})">EDITAR</button>
+                        <a class="btn-link" href="${item.videoUrl}" target="_blank">ABRIR →</a>
                     </div>
                 </div>
             `;
