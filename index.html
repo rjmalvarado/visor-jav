@@ -123,36 +123,53 @@
         renderPagination();
     }
 
-    function renderItems() {
-        const grid = document.getElementById('galleryGrid');
-        grid.innerHTML = '';
+function renderItems() {
+    const grid = document.getElementById('galleryGrid');
+    grid.innerHTML = '';
 
-        const start = (currentPage - 1) * itemsPerPage;
-        const end = start + itemsPerPage;
-        const pageItems = FILTERED_DATA.slice(start, end);
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const pageItems = FILTERED_DATA.slice(start, end);
 
-        pageItems.forEach(row => {
-            const itemObj = { videoUrl: row[0], imageUrl: row[1], title: row[2], actress: row[3], id: row[4] };
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-                <img class="card-img" 
-                     src="${itemObj.imageUrl}" 
-                     referrerpolicy="no-referrer" 
-                     onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=Error+de+Carga'">
-                <div class="card-info">
-                    <div class="card-title">${itemObj.title}</div>
-                    <div class="card-actress">👤 ${itemObj.actress}</div>
-                    <div class="card-actions">
-                        <button class="btn-edit" style="background:none; border:1px solid var(--edit); color:var(--edit); padding:4px; border-radius:4px; cursor:pointer; font-size:10px;" onclick='saveItem(${JSON.stringify(itemObj)})'>EDITAR</button>
-                        <button class="btn-delete" style="background:none; border:1px solid var(--delete); color:var(--delete); padding:4px; border-radius:4px; cursor:pointer; font-size:10px;" onclick="deleteItem('${itemObj.id}', '${itemObj.title}')">BORRAR</button>
-                        <a class="btn-link" href="${itemObj.videoUrl}" target="_blank">VER →</a>
-                    </div>
+    pageItems.forEach(row => {
+        const itemObj = { videoUrl: row[0], imageUrl: row[1], title: row[2], actress: row[3], id: row[4] };
+        
+        // Convertimos el objeto a un formato seguro para los botones (evita errores con comillas)
+        const safeData = btoa(unescape(encodeURIComponent(JSON.stringify(itemObj))));
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <img class="card-img" 
+                 src="${itemObj.imageUrl}" 
+                 referrerpolicy="no-referrer" 
+                 onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=Error+de+Carga'">
+            <div class="card-info">
+                <div class="card-title">${itemObj.title}</div>
+                <div class="card-actress">👤 ${itemObj.actress}</div>
+                <div class="card-actions">
+                    <button class="btn-edit" style="background:none; border:1px solid var(--edit); color:var(--edit); padding:4px; border-radius:4px; cursor:pointer; font-size:10px;" 
+                        onclick="handleEdit('${safeData}')">EDITAR</button>
+                    <button class="btn-delete" style="background:none; border:1px solid var(--delete); color:var(--delete); padding:4px; border-radius:4px; cursor:pointer; font-size:10px;" 
+                        onclick="handleDelete('${itemObj.id}', '${safeData}')">BORRAR</button>
+                    <a class="btn-link" href="${itemObj.videoUrl}" target="_blank">VER →</a>
                 </div>
-            `;
-            grid.appendChild(card);
-        });
-    }
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+    // Funciones auxiliares para procesar los datos seguros
+function handleEdit(safeData) {
+    const item = JSON.parse(decodeURIComponent(escape(atob(safeData))));
+    saveItem(item);
+}
+
+function handleDelete(id, safeData) {
+    const item = JSON.parse(decodeURIComponent(escape(atob(safeData))));
+    deleteItem(id, item.title);
+}
 
     function renderPagination() {
         const controls = document.getElementById('paginationControls');
