@@ -10,6 +10,11 @@
         .container { max-width: 1200px; margin: auto; text-align: center; }
         .header { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; }
         
+        /* Estilos del Buscador */
+        .search-container { margin-bottom: 15px; }
+        .search-input { width: 100%; max-width: 500px; padding: 12px 20px; border-radius: 25px; border: 1px solid #334155; background: #1e293b; color: white; font-size: 16px; outline: none; transition: 0.3s; }
+        .search-input:focus { border-color: var(--accent); }
+
         .filter-container { margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.05); }
         .filter-btn { padding: 6px 15px; background: #334155; color: white; border: 1px solid #475569; border-radius: 20px; cursor: pointer; font-size: 11px; transition: 0.3s; text-transform: uppercase; }
         .filter-btn:hover, .filter-btn.active { background: var(--accent); border-color: var(--accent); }
@@ -38,6 +43,10 @@
     <div class="header">
         <h1>IPS VULT CLOUD</h1>
         <small>Gestión de Catálogo - Sincronizado con Sheets</small>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" class="search-input" placeholder="Buscar por ID Video..." oninput="handleSearch()">
     </div>
 
     <div class="filter-container" id="actressFilters"></div>
@@ -75,6 +84,22 @@
         }
     }
 
+    // FUNCIÓN DE BÚSQUEDA GENERAL
+    function handleSearch() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        currentPage = 1;
+        
+        // Resetear botones de actriz al buscar en general
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('btn-all').classList.add('active');
+
+        FILTERED_DATA = ALL_DATA.filter(row => {
+            const title = row[2] ? row[2].toLowerCase() : "";
+            return title.includes(query);
+        });
+        updateView();
+    }
+
     function generateFilters(items) {
         const filterBox = document.getElementById('actressFilters');
         filterBox.innerHTML = '<button class="filter-btn active" id="btn-all" onclick="filterByActress(\'ALL\')">TODAS</button>';
@@ -82,7 +107,6 @@
         let allNames = [];
         items.forEach(row => {
             if(row[3]) {
-                // Separamos por comas y limpiamos espacios
                 const namesInRow = row[3].split(',').map(n => n.trim());
                 allNames = allNames.concat(namesInRow);
             }
@@ -100,6 +124,8 @@
     }
 
     function filterByActress(name, btnElement) {
+        // Limpiar buscador al filtrar por actriz para evitar conflictos
+        document.getElementById('searchInput').value = "";
         currentPage = 1;
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         
@@ -108,7 +134,6 @@
             FILTERED_DATA = ALL_DATA;
         } else {
             if(btnElement) btnElement.classList.add('active');
-            // Filtrar si el nombre está incluido en la lista de actrices de la fila
             FILTERED_DATA = ALL_DATA.filter(row => {
                 if(!row[3]) return false;
                 const names = row[3].split(',').map(n => n.trim());
@@ -123,53 +148,50 @@
         renderPagination();
     }
 
-function renderItems() {
-    const grid = document.getElementById('galleryGrid');
-    grid.innerHTML = '';
+    function renderItems() {
+        const grid = document.getElementById('galleryGrid');
+        grid.innerHTML = '';
 
-    const start = (currentPage - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    const pageItems = FILTERED_DATA.slice(start, end);
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageItems = FILTERED_DATA.slice(start, end);
 
-    pageItems.forEach(row => {
-        const itemObj = { videoUrl: row[0], imageUrl: row[1], title: row[2], actress: row[3], id: row[4] };
-        
-        // Convertimos el objeto a un formato seguro para los botones (evita errores con comillas)
-        const safeData = btoa(unescape(encodeURIComponent(JSON.stringify(itemObj))));
+        pageItems.forEach(row => {
+            const itemObj = { videoUrl: row[0], imageUrl: row[1], title: row[2], actress: row[3], id: row[4] };
+            const safeData = btoa(unescape(encodeURIComponent(JSON.stringify(itemObj))));
 
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <img class="card-img" 
-                 src="${itemObj.imageUrl}" 
-                 referrerpolicy="no-referrer" 
-                 onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=Error+de+Carga'">
-            <div class="card-info">
-                <div class="card-title">${itemObj.title}</div>
-                <div class="card-actress">👤 ${itemObj.actress}</div>
-                <div class="card-actions">
-                    <button class="btn-edit" style="background:none; border:1px solid var(--edit); color:var(--edit); padding:4px; border-radius:4px; cursor:pointer; font-size:10px;" 
-                        onclick="handleEdit('${safeData}')">EDITAR</button>
-                    <button class="btn-delete" style="background:none; border:1px solid var(--delete); color:var(--delete); padding:4px; border-radius:4px; cursor:pointer; font-size:10px;" 
-                        onclick="handleDelete('${itemObj.id}', '${safeData}')">BORRAR</button>
-                    <a class="btn-link" href="${itemObj.videoUrl}" target="_blank">VER →</a>
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <img class="card-img" 
+                     src="${itemObj.imageUrl}" 
+                     referrerpolicy="no-referrer" 
+                     onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=Error+de+Carga'">
+                <div class="card-info">
+                    <div class="card-title">${itemObj.title}</div>
+                    <div class="card-actress">👤 ${itemObj.actress}</div>
+                    <div class="card-actions">
+                        <button class="btn-edit" style="background:none; border:1px solid var(--edit); color:var(--edit); padding:4px; border-radius:4px; cursor:pointer; font-size:10px;" 
+                            onclick="handleEdit('${safeData}')">EDITAR</button>
+                        <button class="btn-delete" style="background:none; border:1px solid var(--delete); color:var(--delete); padding:4px; border-radius:4px; cursor:pointer; font-size:10px;" 
+                            onclick="handleDelete('${itemObj.id}', '${safeData}')">BORRAR</button>
+                        <a class="btn-link" href="${itemObj.videoUrl}" target="_blank">VER →</a>
+                    </div>
                 </div>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-}
+            `;
+            grid.appendChild(card);
+        });
+    }
 
-    // Funciones auxiliares para procesar los datos seguros
-function handleEdit(safeData) {
-    const item = JSON.parse(decodeURIComponent(escape(atob(safeData))));
-    saveItem(item);
-}
+    function handleEdit(safeData) {
+        const item = JSON.parse(decodeURIComponent(escape(atob(safeData))));
+        saveItem(item);
+    }
 
-function handleDelete(id, safeData) {
-    const item = JSON.parse(decodeURIComponent(escape(atob(safeData))));
-    deleteItem(id, item.title);
-}
+    function handleDelete(id, safeData) {
+        const item = JSON.parse(decodeURIComponent(escape(atob(safeData))));
+        deleteItem(id, item.title);
+    }
 
     function renderPagination() {
         const controls = document.getElementById('paginationControls');
